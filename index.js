@@ -3,6 +3,7 @@ const multer = require("multer");
 const cors = require("cors");
 const axios = require("axios");
 const FormData = require("form-data");
+const fs = require("fs-extra");
 
 const app = express();
 const BOT_TOKEN = "8610559635:AAEHN9-OEPDnSvvQLZmIXZ0l_mC65ZnU0yo";
@@ -14,7 +15,43 @@ app.use(cors());
 const upload = multer({ storage: multer.memoryStorage() });
 
 // simple in-memory DB
+const DB_FILE = "./files.json";
+
 let filesDB = [];
+
+// load existing files
+async function loadDB() {
+
+    try {
+
+        const exists = await fs.pathExists(DB_FILE);
+
+        if (!exists) {
+
+            await fs.writeJson(DB_FILE, []);
+
+            filesDB = [];
+
+            return;
+        }
+
+        filesDB = await fs.readJson(DB_FILE);
+
+    } catch (err) {
+
+        console.log("DB Load Error:", err.message);
+
+        filesDB = [];
+    }
+}
+
+// save files
+async function saveDB() {
+
+    await fs.writeJson(DB_FILE, filesDB);
+}
+
+loadDB();
 
 // home route
 app.get("/", (req, res) => {
@@ -81,6 +118,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             time: new Date().toISOString(),
             messageId: response.data.result.message_id
         });
+        await saveDB();
 
         res.json({
             ok: true,
@@ -132,6 +170,7 @@ app.delete("/delete/:id", async (req, res) => {
 
         // remove from DB
         filesDB.splice(id, 1);
+        await saveDB();
 
         res.json({
             ok: true
