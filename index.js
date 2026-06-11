@@ -147,6 +147,13 @@ app.get("/files", (req, res) => {
 });
 
 // start server
+app.get("/debug", async (req, res) => {
+
+    const content = await fs.readFile(DB_FILE, "utf8");
+
+    res.send(content);
+
+});
 const PORT = process.env.PORT || 3000;
 
     app.listen(PORT, () => {
