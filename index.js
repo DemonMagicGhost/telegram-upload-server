@@ -51,7 +51,9 @@ async function saveDB() {
     await fs.writeJson(DB_FILE, filesDB);
 }
 
-loadDB();
+loadDB().then(() => {
+    console.log("DB LOADED:", filesDB.length);
+});
 
 // home route
 app.get("/", (req, res) => {
@@ -110,6 +112,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
 
         // save to DB
+        // save to DB
         filesDB.push({
             name: req.file.originalname,
             url: fileUrl,
@@ -118,7 +121,12 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             time: new Date().toISOString(),
             messageId: response.data.result.message_id
         });
+
+        console.log("FILES COUNT:", filesDB.length);
+
         await saveDB();
+
+        console.log("DB SAVED");
 
         res.json({
             ok: true,
