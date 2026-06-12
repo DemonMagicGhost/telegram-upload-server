@@ -47,7 +47,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             endpoint = "sendDocument";
             field = "document";
         }
-        } 
         else if (name.match(/\.(mp3|wav|ogg)$/)) {
             endpoint = "sendAudio";
             field = "audio";
