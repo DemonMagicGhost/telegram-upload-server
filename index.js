@@ -3,7 +3,6 @@ const multer = require("multer");
 const cors = require("cors");
 const axios = require("axios");
 const FormData = require("form-data");
-const fs = require("fs-extra");
 const admin = require("firebase-admin");
 admin.initializeApp({
   credential: admin.credential.cert({
@@ -23,47 +22,6 @@ app.use(cors());
 
 // memory storage
 const upload = multer({ storage: multer.memoryStorage() });
-
-// simple in-memory DB
-const DB_FILE = "./files.json";
-
-let filesDB = [];
-
-// load existing files
-async function loadDB() {
-
-    try {
-
-        const exists = await fs.pathExists(DB_FILE);
-
-        if (!exists) {
-
-            await fs.writeJson(DB_FILE, []);
-
-            filesDB = [];
-
-            return;
-        }
-
-        filesDB = await fs.readJson(DB_FILE);
-
-    } catch (err) {
-
-        console.log("DB Load Error:", err.message);
-
-        filesDB = [];
-    }
-}
-
-// save files
-async function saveDB() {
-
-    await fs.writeJson(DB_FILE, filesDB);
-}
-
-loadDB().then(() => {
-    console.log("DB LOADED:", filesDB.length);
-});
 
 // home route
 app.get("/", (req, res) => {
@@ -164,13 +122,6 @@ app.get("/files", async (req, res) => {
 });
 
 // start server
-app.get("/debug", async (req, res) => {
-
-    const content = await fs.readFile(DB_FILE, "utf8");
-
-    res.send(content);
-
-});
 const PORT = process.env.PORT || 3000;
 
     app.listen(PORT, () => {
@@ -179,19 +130,22 @@ const PORT = process.env.PORT || 3000;
 
 app.delete("/delete/:id", async (req, res) => {
 
-    const id = parseInt(req.params.id);
-
-    const file = filesDB[id];
-
-    if (!file) {
-        return res.status(404).json({
-            error: "File not found"
-        });
-    }
+    const docId = req.params.id;
 
     try {
 
-        // delete telegram message
+        const docRef = db.collection("files").doc(docId);
+        const docSnap = await docRef.get();
+
+        if (!docSnap.exists) {
+            return res.status(404).json({
+                error: "File not found"
+            });
+        }
+
+        const file = docSnap.data();
+
+        // delete Telegram message
         await axios.post(
             `https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`,
             {
@@ -200,9 +154,8 @@ app.delete("/delete/:id", async (req, res) => {
             }
         );
 
-        // remove from DB
-        filesDB.splice(id, 1);
-        await saveDB();
+        // delete Firestore document
+        await docRef.delete();
 
         res.json({
             ok: true
