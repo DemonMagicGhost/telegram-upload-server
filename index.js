@@ -4,6 +4,16 @@ const cors = require("cors");
 const axios = require("axios");
 const FormData = require("form-data");
 const fs = require("fs-extra");
+const admin = require("firebase-admin");
+admin.initializeApp({
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
+  })
+});
+
+const db = admin.firestore();
 
 const app = express();
 const BOT_TOKEN = "8610559635:AAEHN9-OEPDnSvvQLZmIXZ0l_mC65ZnU0yo";
@@ -113,7 +123,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
         // save to DB
         // save to DB
-        filesDB.push({
+        await db.collection("files").add({
             name: req.file.originalname,
             url: fileUrl,
             size: req.file.size,
@@ -121,10 +131,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             time: new Date().toISOString(),
             messageId: response.data.result.message_id
         });
-
-        console.log("FILES COUNT:", filesDB.length);
-
-        await saveDB();
 
         console.log("DB SAVED");
 
@@ -142,8 +148,19 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 });
 
 // get all files
-app.get("/files", (req, res) => {
-    res.json(filesDB);
+app.get("/files", async (req, res) => {
+
+    const snapshot = await db
+        .collection("files")
+        .orderBy("time", "desc")
+        .get();
+
+    const files = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+    }));
+
+    res.json(files);
 });
 
 // start server
