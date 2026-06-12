@@ -44,8 +44,9 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
         // detect file type
         if (name.match(/\.(mp4|webm|mov)$/)) {
-            endpoint = "sendVideo";
-            field = "video";
+            endpoint = "sendDocument";
+            field = "document";
+        }
         } 
         else if (name.match(/\.(mp3|wav|ogg)$/)) {
             endpoint = "sendAudio";
