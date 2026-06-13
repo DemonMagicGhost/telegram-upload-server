@@ -69,7 +69,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             { headers: form.getHeaders() }
         );
 
-        console.log("✅ Sent to Telegram");
+        console.log(JSON.stringify(response.data, null, 2));
 
         // generate file URL (Telegram CDN style)
         const fileId =
@@ -106,9 +106,13 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         });
 
     } catch (err) {
-        console.log("❌ Telegram error:", err.message);
-        res.status(500).json({ error: err.message });
-    }
+    console.log("❌ FULL ERROR:");
+    console.log(err.response?.data || err);
+    
+    res.status(500).json({
+        error: err.response?.data || err.message
+    });
+}
 });
 
 // get all files
