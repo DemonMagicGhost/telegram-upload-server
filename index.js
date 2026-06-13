@@ -11,7 +11,7 @@ admin.initializeApp({
     privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
   })
 });
-
+const fs = require("fs");
 const db = admin.firestore();
 
 const app = express();
@@ -21,7 +21,7 @@ const CHANNEL_ID = "-1003937995806";
 app.use(cors());
 
 // memory storage
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ dest: "uploads/" });
 
 // home route
 app.get("/", (req, res) => {
@@ -55,7 +55,13 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         const form = new FormData();
 
         form.append("chat_id", CHANNEL_ID);
-        form.append(field, req.file.buffer, req.file.originalname);
+        
+
+        form.append(
+            field,
+            fs.createReadStream(req.file.path),
+            req.file.originalname
+        );
 
         const response = await axios.post(
             `https://api.telegram.org/bot${BOT_TOKEN}/${endpoint}`,
